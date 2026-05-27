@@ -48,4 +48,45 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
+callbacks: {
+  async signIn({ user, account }) {
+
+    try {
+
+      if (account?.provider === "google") {
+
+        if (!user.email) {
+          return false;
+        }
+
+        const email = user.email;
+        const name = user.name ?? "";
+        const image = user.image ?? "";
+
+        const existingUser = await sql`
+          SELECT * FROM users
+          WHERE email = ${email}
+        `;
+
+        if (existingUser.length === 0) {
+
+          await sql`
+            INSERT INTO users (name, email, image)
+            VALUES (${name}, ${email}, ${image})
+          `;
+
+          console.log("Google user inserted");
+        }
+      }
+
+      return true;
+
+    } catch (error) {
+
+      console.error("GOOGLE SIGN IN ERROR:", error);
+
+      return false;
+    }
+  },
+},
 });
